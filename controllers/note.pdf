@@ -1,0 +1,307 @@
+The technologies we are going to use today are Sequelize, Express.js, Nodemon, and MySQL. We are also using MySQL WorkBench as a tool for managing our database.
+
+Express is a Node-based web framework and will be used to open up a local server on our machine. Nodemon is a popular package that refreshes the server whenever there is a change.
+
+I’d recommend using sequelize-cli to do the initial set up. However, you will be able to follow this tutorial even by creating folders and files manually.
+
+Step 1 — Install necessary npm packages
+we are going to install sequelize-cli and other necessary packages.
+
+npm init
+npm install --save-dev sequelize-cli
+npm install --save-dev nodemon
+npm install express
+npm install mysql2
+These commands will initialize your node.js project and install sequelize-cli, nodemon, express, and mysql2 in the project.
+
+Step 2 — Bootstrap your project
+npx sequelize-cli init
+This command will create config folder, migrations folder, models folder, and seeders folder.
+
+If you take a look at themodels folder, you will find index.js. This file is in charge of establishing the connection to the database and reading other files in the models folder. Then it will import them as a Sequelize model, which will be added to the db object.
+
+
+Folder structure after sequelize-cli init
+Just in case you don’t want to use sequelize-cli and want to manually create folders and files, I will attach index.js here as well.
+
+index.js inside models folder:
+
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
+const basename = path.basename(__filename);
+const env = process.env.NODE_ENV || 'development';
+const config = require(__dirname + '/../config/config.json')[env];
+const db = {};
+let sequelize;
+if (config.use_env_variable) {
+  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+} else {
+  sequelize = new Sequelize(config.database, config.username, config.password, config);
+}
+fs
+  .readdirSync(__dirname)
+  .filter(file => {
+    return (file.indexOf('.') !== 0) && (file !== basename) &&
+      (file.slice(-3) === '.js');
+    })
+  .forEach(file => {
+    const model = require(path.join(__dirname, file))(sequelize,
+      Sequelize.DataTypes);
+    db[model.name] = model;
+  });
+Object.keys(db).forEach(modelName => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
+module.exports = db;
+We are going to modify config.json inside config folder to make a connection to the database.
+
+This is how initial bootstrapped config.json will look like:
+
+{
+  "development": {
+    "username": "root",
+    "password": null,
+    "database": "database_development",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": null,
+    "database": "database_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "root",
+    "password": null,
+    "database": "database_production",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  }
+}
+Since we are working on the development environment, we will change “database” inside “development”.
+
+"development": {
+  "username": "root",
+  "password": null,
+  "database": "modelTutorial",
+  "host": "127.0.0.1",
+  "dialect": "mysql"
+},
+Step 3 — Create a new connection and a schema on MySQL WorkBench
+Now that we’ve set up config.json, we will create a connection and a schema on MySQL WorkBench.
+
+If you don’t have MySQL WorkBench installed on yours, please visit MySQL WorkBench website and install it. If you are comfortable with other database management tools, you are also welcome to use your favorite tool.
+
+
+Setting up a new connection on MySQL WorkBench
+Note that mysql port is always set to 3306. Creating multiple connections with different ports of mysql isn’t recommended
+
+Now that we have a new connection, let’s create a schema called modelTutorial. In a new query, run the following command.
+
+CREATE SCHEMA modelTutorial;
+This command will create a schema called modelTutorial.
+
+
+Setting up a new schema modelTutorial
+Step 4 — Create a server with Express
+Create index.js under the main folder. This file will be the entry point of starting our app.
+
+
+Folder structure with index.js
+In index.js, we are going to create an Express app.
+
+index.js:
+
+const express = require('express')
+const app = express()
+const port = 3000
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`)
+})
+Now if we type the following on the console:
+
+nodemon index.js
+Nodemon will re-start the server whenever there is a change (but you would still need to hit refresh on a web browser).
+
+Let’s open up a web browser and put localhost:3000 and hit the enter. You will be able to see “Hello World!”.
+
+On the console from IDE, we will be able to see something like this:
+
+
+Server successfully running!
+Password might be different than yours. It’s because I changed the password. You can change the password from MySQL WorkBench any time :)
+
+Step 5 — Create models
+If you made it this far, let’s get going. It’s finally time to make our models!
+
+We are going to make 4 models — User, Budget, Item, and Category.
+
+Before we actually create files, let’s establish and understand the relationship among models.
+
+User can have many Budget — User : Budget = 1 : N
+Budget can have many Item — Budget : Item = 1 : N
+Category can have many Item — Category : Item = 1 : N
+We are going to make one js file for each model under themodels folder.
+
+
+Folder structure for models
+There are 2 ways to create a model according to Sequelize.
+
+Using sequelize.define.
+Extending Model.
+We are going to use sequelize.define to create models in this tutorial. If you wonder how you can use method 2, you can go to the Sequelize document and check it out.
+
+Let’s start with user.js.
+
+Each user will have firstName, lastName, email, and password.
+
+user.js:
+
+module.exports = (sequelize, Sequelize) => {
+  const User = sequelize.define("user", {
+    firstName: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    lastName: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: Sequelize.STRING,
+      validate: {
+        isEmail: true,
+      },
+      allowNull: false,
+    },
+    password: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+  });
+  User.associate = function (models) {
+    User.hasMany(models.budget);
+  };
+  return User;
+};
+Here is a brief explanation for the code above.
+
+We define “user”. Each “user” we define will have 4 properties — firstName, lastName, email, and password.
+
+type defines datatype for the property. validate is used to validate whether the property meets a certain validation requirement. allowNull decides whether the value of the property can be null or not.
+
+Next, we define association with other models. User has a one-to-many relationship with Budget. So in this case, we can use hasMany that Sequelize provides.
+
+Finally, we return User.
+
+There are a few things to note that might help you in the future.
+
+Notice that we are defining “user”. Even though we are defining as a singular, Sequelize automatically changes this to plural.
+Notice that we are passing sequelize and Sequelize after module.exports = . This might look a bit different than how you define a model from Sequelize documents. However, it is essentially doing the same job.
+ The reason behind it is because we have index.js under models folder. If you take a look at the part starting fs.readdirSync, inside of this function we are creating a model variable and passing sequelize and Sequelize.DataTypes after require.
+Moving on to our second model — Budget, this is how we implement it.
+
+budget.js:
+
+module.exports = (sequelize, Sequelize) => {
+  const Budget = sequelize.define("budget", {
+    startDate: {
+      type: Sequelize.DATEONLY,
+      allowNull: false,
+    },
+    endDate: {
+      type: Sequelize.DATEONLY,
+      allowNull: false,
+    },
+  });
+  Budget.associate = function (models) {
+    Budget.hasMany(models.item, {
+      onDelete: "CASCADE",
+    });
+    Budget.belongsTo(models.user);
+  };
+  return Budget;
+};
+Since we talked about type and allowNull, I will skip the explanation on these. But, let’s take a look at the association. Budget has 2 relationships — one for User and another one for Item.
+
+To remind you what kind of relationships they have, here are the relationships:
+
+User : Budget = 1 : N
+
+Budget : Item = 1 : N
+
+Since each Budget is assigned to certain User, Budget belongTo User.
+
+One Budget can have many Item(s), so one Budget hasMany Item. We also used onDelete : "CASCADE", meaning when we delete a Budget, all Item(s) that are related to that Budgetwill be deleted as well.
+
+Here is our third model — Item.
+
+module.exports = (sequelize, Sequelize) => {
+  const Item = sequelize.define("item", {
+    amount: {
+      type: Sequelize.FLOAT,
+      allowNull: false,
+    },
+    description: {
+      type: Sequelize.STRING,
+      allowNull: true,
+    },
+  });
+  Item.associate = function (models) {
+    Item.belongsTo(models.category);
+    Item.belongsTo(models.budget);
+  };
+  return Item;
+};
+I hope you’re starting to get the gist of it!
+
+Item belongsTo Category and Item belongsTo Budget.
+
+Here is our last model — Category.
+
+module.exports = (sequelize, Sequelize) => {
+  const Category = sequelize.define("category", {
+    type: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+  });
+  Category.associate = function (models) {
+    Category.hasMany(models.item);
+  };
+  return Category;
+};
+Now that we defined all models, index.js under the models folder will do the magic that puts all models into db object.
+
+Even though we’ve created all models, this won’t automatically create tables in our database. There are 2 more steps that we need to do to make this happen.
+
+First, we need to import db object in our main entry point — index.js where our Express app is running.
+
+Next, we need to call sequelize.sync method on db object.
+
+index.js:
+
+const express = require("express");
+const app = express();
+const port = 3000;
+// Create database connection and call all models
+const db = require("./models");
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
+db.sequelize.sync({ force: false }).then(function () {
+  app.listen(port, function () {
+    console.log("server is successfully running!");
+  });
+});

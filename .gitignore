@@ -1,0 +1,9 @@
+node_modules/
+sequilize.rtfd/
+Untitled.rftd/
+/category.js
+/controller.js
+/dbconfig.js
+/index.js
+/suitsroute.js
+midleWare/
